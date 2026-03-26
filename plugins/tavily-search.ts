@@ -1,6 +1,6 @@
 const TAVILY_API_URL = "https://api.tavily.com/search";
 
-type TavilySearchResult = {
+export type TavilySearchResult = {
   title: string;
   url: string;
   content: string;
@@ -12,7 +12,7 @@ type TavilyResponse = {
   results?: TavilySearchResult[];
 };
 
-export async function searchWeb(query: string) {
+export async function searchTavily(query: string) {
   const apiKey = process.env.TAVILY_API_KEY;
 
   if (!apiKey) {

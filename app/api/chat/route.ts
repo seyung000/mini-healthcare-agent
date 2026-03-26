@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
-import { runAgent } from "@/lib/agent";
-import { saveMessage } from "@/lib/db";
+import { runHealthcareAgent } from "@/agent/healthcare-agent";
+import { saveMessage } from "@/plugins/healthcare-db";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
 
   saveMessage("user", message, "chat");
 
-  const result = await runAgent({
+  const result = await runHealthcareAgent({
     message,
     language: body.language ?? "ko",
   });

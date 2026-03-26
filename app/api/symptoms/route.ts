@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { listSymptoms } from "@/lib/db";
+import { listSymptoms } from "@/plugins/healthcare-db";
 
 export const runtime = "nodejs";
 

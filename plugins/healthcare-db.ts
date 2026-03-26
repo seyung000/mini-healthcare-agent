@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 
 import Database from "better-sqlite3";
+
 import { parseCsv } from "@/lib/csv";
 
 const projectRoot = process.cwd();
@@ -59,74 +60,6 @@ function readCsvRows(filePath: string): string[][] {
   return rows.filter((row) => row.length > 1);
 }
 
-function seedHealthcareTables() {
-  const diseases = readCsvRows(diseasesCsvPath).map((row) => ({
-    id: Number(row[0]),
-    name_ko: row[1],
-    name_en: row[2],
-    summary: row[3],
-    category: row[4],
-    severity_level: row[5],
-  }));
-
-  const symptoms = readCsvRows(symptomsCsvPath).map((row) => ({
-    id: Number(row[0]),
-    name_ko: row[1],
-    name_en: row[2],
-    body_part: row[3],
-    description: row[4],
-  }));
-
-  const diseaseSymptoms = readCsvRows(diseaseSymptomsCsvPath).map((row) => ({
-    id: Number(row[0]),
-    disease_id: Number(row[1]),
-    symptom_id: Number(row[2]),
-    weight: Number(row[3]),
-  }));
-
-  resetHealthcareTables();
-  insertDiseases(diseases);
-  insertSymptoms(symptoms);
-  insertDiseaseSymptoms(diseaseSymptoms);
-}
-
-function ensureHealthcareSeeded() {
-  const diseaseCount = db
-    .prepare(
-      `
-        SELECT COUNT(*) AS count
-        FROM diseases
-      `,
-    )
-    .get() as { count: number };
-
-  if (diseaseCount.count === 0) {
-    seedHealthcareTables();
-  }
-}
-
-export function saveMessage(role: string, content: string, source: string) {
-  db.prepare(
-    `
-      INSERT INTO messages (role, content, source)
-      VALUES (?, ?, ?)
-    `,
-  ).run(role, content, source);
-}
-
-export function getRecentMessages(limit = 10): MessageRow[] {
-  return db
-    .prepare(
-      `
-        SELECT id, role, content, source, created_at
-        FROM messages
-        ORDER BY id DESC
-        LIMIT ?
-      `,
-    )
-    .all(limit) as MessageRow[];
-}
-
 export function resetHealthcareTables() {
   db.exec(`
     DELETE FROM disease_symptoms;
@@ -178,6 +111,74 @@ export function insertDiseaseSymptoms(rows: DiseaseSymptomRow[]) {
   });
 
   transaction(rows);
+}
+
+function seedHealthcareTables() {
+  const diseases = readCsvRows(diseasesCsvPath).map((row) => ({
+    id: Number(row[0]),
+    name_ko: row[1],
+    name_en: row[2],
+    summary: row[3],
+    category: row[4],
+    severity_level: row[5],
+  }));
+
+  const symptoms = readCsvRows(symptomsCsvPath).map((row) => ({
+    id: Number(row[0]),
+    name_ko: row[1],
+    name_en: row[2],
+    body_part: row[3],
+    description: row[4],
+  }));
+
+  const diseaseSymptoms = readCsvRows(diseaseSymptomsCsvPath).map((row) => ({
+    id: Number(row[0]),
+    disease_id: Number(row[1]),
+    symptom_id: Number(row[2]),
+    weight: Number(row[3]),
+  }));
+
+  resetHealthcareTables();
+  insertDiseases(diseases);
+  insertSymptoms(symptoms);
+  insertDiseaseSymptoms(diseaseSymptoms);
+}
+
+export function ensureHealthcareSeeded() {
+  const diseaseCount = db
+    .prepare(
+      `
+        SELECT COUNT(*) AS count
+        FROM diseases
+      `,
+    )
+    .get() as { count: number };
+
+  if (diseaseCount.count === 0) {
+    seedHealthcareTables();
+  }
+}
+
+export function saveMessage(role: string, content: string, source: string) {
+  db.prepare(
+    `
+      INSERT INTO messages (role, content, source)
+      VALUES (?, ?, ?)
+    `,
+  ).run(role, content, source);
+}
+
+export function getRecentMessages(limit = 10): MessageRow[] {
+  return db
+    .prepare(
+      `
+        SELECT id, role, content, source, created_at
+        FROM messages
+        ORDER BY id DESC
+        LIMIT ?
+      `,
+    )
+    .all(limit) as MessageRow[];
 }
 
 export function searchDiseasesByName(query: string, limit = 10): DiseaseRow[] {

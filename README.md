@@ -1,18 +1,34 @@
 # Mini Healthcare Agent
 
-Vercel deployment-oriented minimal TypeScript scaffold using Next.js and SQLite.
+Vercel deployment-oriented healthcare agent demo built around an `agent + skills + plugins` structure.
 
 ## Structure
 
 ```text
+agent/
+  healthcare-agent.ts
+  types.ts
+skills/
+  emergency_guard.ts
+  response_writer.ts
+  symptom_detector.ts
+  symptom_search.ts
+  web_search.ts
+plugins/
+  healthcare-db.ts
+  tavily-search.ts
 app/
   api/
     chat/route.ts
+    diseases/route.ts
     health/route.ts
+    search/route.ts
+    symptoms/route.ts
+  globals.css
+  layout.tsx
   page.tsx
 lib/
-  agent.ts
-  db.ts
+  csv.ts
 database/
   schema.sql
 data/
@@ -74,14 +90,27 @@ Vercel filesystem is ephemeral, so SQLite data will not persist between deployme
 - `data/symptoms.csv`
 - `data/disease_symptoms.csv`
 
-These files are loaded into SQLite with `npm run seed`.
+These files are loaded into SQLite with `npm run seed`, and the app also auto-seeds them on first access if the deployed database is empty.
 
-## Chat Search Routing
+## Agent Design
 
-`POST /api/chat` now tries to decide whether the user message should trigger symptom search.
+`POST /api/chat` runs through a small agent pipeline.
 
-- The app first tries local symptom-name matching against the SQLite symptom catalog.
-- If matching symptoms produce disease candidates, it returns ranked local results.
-- If local matching is not enough and `TAVILY_API_KEY` is set, it falls back to Tavily web search.
-- Tavily is used only as a general-information fallback, not as a diagnosis engine.
+- `agent/healthcare-agent.ts`
+  Orchestrates which skill runs next and assembles the final result.
+- `skills/emergency_guard.ts`
+  Checks whether the message looks urgent and should bypass search.
+- `skills/symptom_detector.ts`
+  Detects symptom IDs from the local symptom catalog.
+- `skills/symptom_search.ts`
+  Runs symptom-to-disease candidate search against SQLite.
+- `skills/web_search.ts`
+  Falls back to Tavily when local data is not enough.
+- `skills/response_writer.ts`
+  Converts search outputs into user-facing Korean or English responses.
+- `plugins/healthcare-db.ts`
+  Provides SQLite access and automatic CSV seeding.
+- `plugins/tavily-search.ts`
+  Wraps Tavily API access as a web-search plugin.
 
+This layout is intended to make later OpenClaw integration easier by keeping the agent, skills, and tool plugins separate.

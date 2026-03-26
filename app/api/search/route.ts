@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { searchDiseasesBySymptoms } from "@/lib/db";
+import { searchDiseasesBySymptoms } from "@/plugins/healthcare-db";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

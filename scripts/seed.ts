@@ -7,7 +7,7 @@ import {
   insertDiseaseSymptoms,
   insertSymptoms,
   resetHealthcareTables,
-} from "../lib/db";
+} from "../plugins/healthcare-db";
 
 const projectRoot = process.cwd();
 
