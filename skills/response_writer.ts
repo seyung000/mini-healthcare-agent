@@ -6,8 +6,8 @@ import type {
 } from "@/agent/types";
 
 const SAFE_RESPONSES = {
-  ko: "일반적인 건강 정보는 도와드릴 수 있지만, 진단이나 응급 대응은 제공할 수 없습니다. 급한 증상이 있으면 의료진이나 응급 서비스에 바로 연락하세요.",
-  en: "I can share general health information, but I cannot provide diagnosis or emergency care. Please contact a clinician or local emergency services for urgent issues.",
+  ko: "현재 로컬 데이터와 웹검색에서 바로 연결할 정보를 찾지 못했습니다. 증상을 조금 더 구체적으로 적어주시거나 질병명을 함께 입력해 주세요.",
+  en: "I could not find a strong match from the local dataset or web search. Please describe the symptoms in more detail or include a disease name.",
 } as const;
 
 export function writeSafeResponse(language: AgentLanguage) {
