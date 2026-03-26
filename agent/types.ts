@@ -22,6 +22,13 @@ export type WebSearchItem = {
   score?: number;
 };
 
+export type SkillTraceItem = {
+  id: string;
+  label: string;
+  status: "completed" | "skipped" | "running";
+  detail?: string;
+};
+
 export type AgentResult = {
   mode: "safe_mode" | "symptom_search" | "emergency_mode" | "web_search";
   response: string;
@@ -29,4 +36,5 @@ export type AgentResult = {
   detectedSymptomIds?: number[];
   candidates?: DiseaseCandidate[];
   webResults?: WebSearchItem[];
+  trace?: SkillTraceItem[];
 };

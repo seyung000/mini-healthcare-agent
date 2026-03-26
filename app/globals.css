@@ -65,6 +65,10 @@ textarea {
   font-weight: 600;
 }
 
+.topbar.compact {
+  margin-bottom: 18px;
+}
+
 .hero-copy {
   text-align: center;
   margin-bottom: 34px;
@@ -142,15 +146,14 @@ textarea {
 .chat-card {
   margin-top: 12px;
   padding: 18px;
+  margin-bottom: 132px;
 }
 
 .chat-log {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  min-height: 180px;
-  max-height: 52vh;
-  overflow-y: auto;
+  min-height: calc(100vh - 260px);
   padding: 4px;
 }
 
@@ -191,6 +194,127 @@ textarea {
   margin: 0;
 }
 
+.skill-trace {
+  margin-bottom: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(248, 250, 252, 0.9);
+}
+
+.skill-trace summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 10px 12px;
+  color: var(--muted);
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.skill-trace summary::-webkit-details-marker {
+  display: none;
+}
+
+.skill-trace ul {
+  margin: 0;
+  padding: 0 12px 12px;
+  list-style: none;
+}
+
+.skill-trace li + li {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.skill-trace li p {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.trace-status {
+  margin-left: 8px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.trace-status.completed {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.trace-status.running {
+  color: #92400e;
+  background: #fef3c7;
+}
+
+.trace-status.skipped {
+  color: #475569;
+  background: #e2e8f0;
+}
+
+.chat-shell {
+  width: min(980px, 100%);
+  margin: 0 auto;
+}
+
+.composer-dock {
+  position: fixed;
+  left: 50%;
+  bottom: 20px;
+  transform: translateX(-50%);
+  width: min(920px, calc(100% - 24px));
+  z-index: 20;
+}
+
+.chat-composer {
+  border: 1px solid var(--line);
+  border-radius: 26px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: var(--shadow);
+  padding: 14px 16px 12px;
+  backdrop-filter: blur(12px);
+}
+
+.chat-composer textarea {
+  width: 100%;
+  min-height: 56px;
+  resize: none;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: 1rem;
+}
+
+.chat-composer textarea::placeholder {
+  color: #9ca3af;
+}
+
+.chat-composer-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 10px;
+}
+
+.chat-composer-footer button {
+  border: 0;
+  border-radius: 999px;
+  padding: 10px 16px;
+  background: #111827;
+  color: white;
+  cursor: pointer;
+}
+
+.chat-composer-footer button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 @media (max-width: 720px) {
   .page-shell {
     padding: 14px 12px 28px;
@@ -207,6 +331,10 @@ textarea {
 
   .topbar {
     margin-bottom: 40px;
+  }
+
+  .topbar.compact {
+    margin-bottom: 12px;
   }
 
   .hero-copy {
@@ -228,6 +356,28 @@ textarea {
   }
 
   .hero-composer-footer button {
+    width: 100%;
+  }
+
+  .chat-card {
+    margin-bottom: 120px;
+    padding: 12px;
+  }
+
+  .chat-log {
+    min-height: calc(100vh - 220px);
+  }
+
+  .composer-dock {
+    bottom: 12px;
+    width: calc(100% - 16px);
+  }
+
+  .chat-composer {
+    border-radius: 22px;
+  }
+
+  .chat-composer-footer button {
     width: 100%;
   }
 }
