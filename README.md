@@ -84,3 +84,4 @@ These files are loaded into SQLite with `npm run seed`.
 - If matching symptoms produce disease candidates, it returns ranked local results.
 - If local matching is not enough and `TAVILY_API_KEY` is set, it falls back to Tavily web search.
 - Tavily is used only as a general-information fallback, not as a diagnosis engine.
+
