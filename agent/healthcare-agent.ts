@@ -1,5 +1,6 @@
 import type { AgentResult, RunAgentInput } from "@/agent/types";
 import { checkEmergency } from "@/skills/emergency_guard";
+import { classifyHealthcareIntent } from "@/skills/intent_classifier";
 import {
   writeSafeResponse,
   writeSymptomSearchResponse,
@@ -34,6 +35,63 @@ export async function runHealthcareAgent(input: RunAgentInput): Promise<AgentRes
     };
   }
 
+  const intent = await classifyHealthcareIntent(input.message, input.language);
+  trace.push({
+    id: "intent_classifier",
+    label: "의료 도메인 의도 분류",
+    status: intent ? "completed" : "skipped",
+    detail: intent
+      ? intent.healthcare_related
+        ? `의료 관련 질문으로 분류됨 (${intent.confidence})`
+        : `비의료 질문으로 분류됨 (${intent.confidence})`
+      : "Gemini 분류에 실패해 기본 흐름으로 진행했습니다",
+  });
+
+  if (intent && !intent.healthcare_related) {
+    const webResult = await runWebSearch(input.message, input.language);
+    trace.push({
+      id: "web_search",
+      label: "Tavily 웹 검색",
+      status: webResult ? "completed" : "skipped",
+      detail: webResult
+        ? `${webResult.results.length}개 웹 결과를 확인했습니다`
+        : "웹 검색 결과를 가져오지 못했습니다",
+    });
+
+    if (webResult) {
+      return {
+        mode: "web_search",
+        response: writeWebSearchResponse(
+          input.language,
+          webResult.answer,
+          webResult.results,
+        ),
+        usedSearch: true,
+        webResults: webResult.results,
+        trace: [
+          ...trace,
+          {
+            id: "symptom_detector",
+            label: "증상 감지",
+            status: "skipped",
+            detail: "비의료 질문으로 분류되어 실행하지 않았습니다",
+          },
+          {
+            id: "symptom_search",
+            label: "로컬 질병 후보 검색",
+            status: "skipped",
+            detail: "비의료 질문으로 분류되어 실행하지 않았습니다",
+          },
+          {
+            id: "response_writer",
+            label: "웹 검색 응답 생성",
+            status: "completed",
+          },
+        ],
+      };
+    }
+  }
+
   const decision = detectSymptoms(input.message);
   trace.push({
     id: "symptom_detector",
@@ -57,13 +115,15 @@ export async function runHealthcareAgent(input: RunAgentInput): Promise<AgentRes
     });
 
     if (localSearch.candidates.length > 0) {
+      const response = await writeSymptomSearchResponse(
+        input,
+        localSearch.symptomIds,
+        localSearch.candidates,
+      );
+
       return {
         mode: "symptom_search",
-        response: writeSymptomSearchResponse(
-          input,
-          localSearch.symptomIds,
-          localSearch.candidates,
-        ),
+        response,
         usedSearch: true,
         detectedSymptomIds: localSearch.symptomIds,
         candidates: localSearch.candidates,
@@ -71,7 +131,7 @@ export async function runHealthcareAgent(input: RunAgentInput): Promise<AgentRes
           ...trace,
           {
             id: "response_writer",
-            label: "검색 결과 응답 생성",
+            label: "Gemini 또는 규칙 기반 응답 생성",
             status: "completed",
           },
           {

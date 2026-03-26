@@ -10,11 +10,13 @@ agent/
   types.ts
 skills/
   emergency_guard.ts
+  intent_classifier.ts
   response_writer.ts
   symptom_detector.ts
   symptom_search.ts
   web_search.ts
 plugins/
+  gemini-client.ts
   healthcare-db.ts
   tavily-search.ts
 app/
@@ -100,6 +102,8 @@ These files are loaded into SQLite with `npm run seed`, and the app also auto-se
   Orchestrates which skill runs next and assembles the final result.
 - `skills/emergency_guard.ts`
   Checks whether the message looks urgent and should bypass search.
+- `skills/intent_classifier.ts`
+  Uses Gemini to decide whether the question is healthcare-related.
 - `skills/symptom_detector.ts`
   Detects symptom IDs from the local symptom catalog.
 - `skills/symptom_search.ts`
@@ -107,7 +111,9 @@ These files are loaded into SQLite with `npm run seed`, and the app also auto-se
 - `skills/web_search.ts`
   Falls back to Tavily when local data is not enough.
 - `skills/response_writer.ts`
-  Converts search outputs into user-facing Korean or English responses.
+  Uses Gemini first to rewrite DB search results in a patient-friendly tone, then falls back to rule-based text if Gemini fails.
+- `plugins/gemini-client.ts`
+  Wraps Gemini generateContent calls for JSON classification and text generation.
 - `plugins/healthcare-db.ts`
   Provides SQLite access and automatic CSV seeding.
 - `plugins/tavily-search.ts`
