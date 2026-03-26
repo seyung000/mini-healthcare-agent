@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 
 import Database from "better-sqlite3";
+import { parseCsv } from "@/lib/csv";
 
 const projectRoot = process.cwd();
 const schemaPath = path.join(projectRoot, "database", "schema.sql");
@@ -40,6 +41,10 @@ type DiseaseSymptomRow = {
   weight: number;
 };
 
+const diseasesCsvPath = path.join(projectRoot, "data", "diseases.csv");
+const symptomsCsvPath = path.join(projectRoot, "data", "symptoms.csv");
+const diseaseSymptomsCsvPath = path.join(projectRoot, "data", "disease_symptoms.csv");
+
 export type MessageRow = {
   id: number;
   role: string;
@@ -47,6 +52,58 @@ export type MessageRow = {
   source: string;
   created_at: string;
 };
+
+function readCsvRows(filePath: string): string[][] {
+  const text = fs.readFileSync(filePath, "utf8");
+  const [, ...rows] = parseCsv(text);
+  return rows.filter((row) => row.length > 1);
+}
+
+function seedHealthcareTables() {
+  const diseases = readCsvRows(diseasesCsvPath).map((row) => ({
+    id: Number(row[0]),
+    name_ko: row[1],
+    name_en: row[2],
+    summary: row[3],
+    category: row[4],
+    severity_level: row[5],
+  }));
+
+  const symptoms = readCsvRows(symptomsCsvPath).map((row) => ({
+    id: Number(row[0]),
+    name_ko: row[1],
+    name_en: row[2],
+    body_part: row[3],
+    description: row[4],
+  }));
+
+  const diseaseSymptoms = readCsvRows(diseaseSymptomsCsvPath).map((row) => ({
+    id: Number(row[0]),
+    disease_id: Number(row[1]),
+    symptom_id: Number(row[2]),
+    weight: Number(row[3]),
+  }));
+
+  resetHealthcareTables();
+  insertDiseases(diseases);
+  insertSymptoms(symptoms);
+  insertDiseaseSymptoms(diseaseSymptoms);
+}
+
+function ensureHealthcareSeeded() {
+  const diseaseCount = db
+    .prepare(
+      `
+        SELECT COUNT(*) AS count
+        FROM diseases
+      `,
+    )
+    .get() as { count: number };
+
+  if (diseaseCount.count === 0) {
+    seedHealthcareTables();
+  }
+}
 
 export function saveMessage(role: string, content: string, source: string) {
   db.prepare(
@@ -124,6 +181,7 @@ export function insertDiseaseSymptoms(rows: DiseaseSymptomRow[]) {
 }
 
 export function searchDiseasesByName(query: string, limit = 10): DiseaseRow[] {
+  ensureHealthcareSeeded();
   const keyword = `%${query.trim()}%`;
 
   return db
@@ -140,6 +198,7 @@ export function searchDiseasesByName(query: string, limit = 10): DiseaseRow[] {
 }
 
 export function listSymptoms(limit = 100): SymptomRow[] {
+  ensureHealthcareSeeded();
   return db
     .prepare(
       `
@@ -161,6 +220,7 @@ export function searchDiseasesBySymptoms(
   symptomIds: number[],
   limit = 5,
 ): DiseaseSearchResult[] {
+  ensureHealthcareSeeded();
   const placeholders = symptomIds.map(() => "?").join(", ");
 
   return db

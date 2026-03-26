@@ -16,6 +16,7 @@ export default function HomePage() {
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const hasConversation = messages.length > 1 || isLoading;
 
   async function sendMessage(message: string) {
     const trimmed = message.trim();
@@ -77,52 +78,59 @@ export default function HomePage() {
 
   return (
     <main className="page-shell">
-      <section className="chat-card">
-        <header className="chat-header">
+      <section className="hero-shell">
+        <div className="topbar">
           <div className="brand-mark" aria-hidden="true">
             H
           </div>
-          <div>
-            <h1>Healthcare Agent</h1>
-            <p>간단한 데모 챗봇</p>
-          </div>
-        </header>
-
-        <div className="chat-log">
-          {messages.map((message, index) => (
-            <article
-              key={`${message.role}-${index}`}
-              className={`message-bubble ${message.role}`}
-            >
-              <span className="message-role">
-                {message.role === "user" ? "나" : "에이전트"}
-              </span>
-              <p>{message.content}</p>
-            </article>
-          ))}
-
-          {isLoading ? (
-            <article className="message-bubble assistant pending">
-              <span className="message-role">에이전트</span>
-              <p>응답을 생성하고 있습니다...</p>
-            </article>
-          ) : null}
+          <span>Healthcare Agent</span>
         </div>
 
-        <form className="composer" onSubmit={handleSubmit}>
+        <div className="hero-copy">
+          <p className="hero-kicker">Healthcare Demo</p>
+          <h1>증상이나 질병 정보를 물어보세요</h1>
+        </div>
+
+        <form className="hero-composer" onSubmit={handleSubmit}>
           <textarea
             value={input}
             onChange={(event) => setInput(event.target.value)}
-            placeholder="증상을 입력해 주세요"
-            rows={2}
+            placeholder="예: 열이 나고 기침이랑 근육통이 있어요"
+            rows={3}
           />
-          <div className="composer-footer">
+          <div className="hero-composer-footer">
+            <span>증상 기반 후보 검색과 웹검색 폴백을 지원합니다.</span>
             <button type="submit" disabled={isLoading || input.trim().length === 0}>
-              {isLoading ? "분석 중..." : "보내기"}
+              {isLoading ? "분석 중..." : "질문하기"}
             </button>
           </div>
         </form>
       </section>
+
+      {hasConversation ? (
+        <section className="chat-card">
+          <div className="chat-log">
+            {messages.map((message, index) => (
+              <article
+                key={`${message.role}-${index}`}
+                className={`message-bubble ${message.role}`}
+              >
+                <span className="message-role">
+                  {message.role === "user" ? "나" : "에이전트"}
+                </span>
+                <p>{message.content}</p>
+              </article>
+            ))}
+
+            {isLoading ? (
+              <article className="message-bubble assistant pending">
+                <span className="message-role">에이전트</span>
+                <p>응답을 생성하고 있습니다...</p>
+              </article>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
     </main>
   );
 }
