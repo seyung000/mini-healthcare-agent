@@ -149,9 +149,7 @@ export default function HomePage() {
                           <span className={`trace-status ${item.status}`}>
                             {item.status === "completed"
                               ? "완료"
-                              : item.status === "running"
-                                ? "진행 중"
-                                : "건너뜀"}
+                              : "진행 중"}
                           </span>
                           {item.detail ? <p>{item.detail}</p> : null}
                         </li>

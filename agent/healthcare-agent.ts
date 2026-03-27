@@ -71,18 +71,6 @@ export async function runHealthcareAgent(input: RunAgentInput): Promise<AgentRes
         trace: [
           ...trace,
           {
-            id: "symptom_detector",
-            label: "증상 감지",
-            status: "skipped",
-            detail: "비의료 질문으로 분류되어 실행하지 않았습니다",
-          },
-          {
-            id: "symptom_search",
-            label: "로컬 질병 후보 검색",
-            status: "skipped",
-            detail: "비의료 질문으로 분류되어 실행하지 않았습니다",
-          },
-          {
             id: "response_writer",
             label: "웹 검색 응답 생성",
             status: "completed",
@@ -134,22 +122,9 @@ export async function runHealthcareAgent(input: RunAgentInput): Promise<AgentRes
             label: "Gemini 또는 규칙 기반 응답 생성",
             status: "completed",
           },
-          {
-            id: "web_search",
-            label: "웹 검색",
-            status: "skipped",
-            detail: "로컬 데이터로 충분해 실행하지 않았습니다",
-          },
         ],
       };
     }
-  } else {
-    trace.push({
-      id: "symptom_search",
-      label: "로컬 질병 후보 검색",
-      status: "skipped",
-      detail: "검색 가능한 증상이 없어 건너뛰었습니다",
-    });
   }
 
   const webResult = await runWebSearch(input.message, input.language);

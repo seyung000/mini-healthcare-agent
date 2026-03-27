@@ -164,6 +164,7 @@ textarea {
   border: 1px solid var(--line);
   line-height: 1.5;
   white-space: pre-wrap;
+  overflow: hidden;
 }
 
 .message-bubble.user {
@@ -192,6 +193,9 @@ textarea {
 
 .message-bubble p {
   margin: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .skill-trace {
@@ -230,6 +234,8 @@ textarea {
   margin-top: 6px;
   color: var(--muted);
   font-size: 0.88rem;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .trace-status {
