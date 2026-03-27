@@ -1,6 +1,7 @@
 import type { AgentResult, RunAgentInput } from "@/agent/types";
 import { checkEmergency } from "@/skills/emergency_guard";
 import { classifyHealthcareIntent } from "@/skills/intent_classifier";
+import { detectLanguage } from "@/skills/language_detector";
 import {
   writeSafeResponse,
   writeSymptomSearchResponse,
@@ -11,7 +12,14 @@ import { runSymptomSearch } from "@/skills/symptom_search";
 import { runWebSearch } from "@/skills/web_search";
 
 export async function runHealthcareAgent(input: RunAgentInput): Promise<AgentResult> {
+  const language = detectLanguage(input.message);
   const trace: AgentResult["trace"] = [
+    {
+      id: "language_detector",
+      label: "질문 언어 감지",
+      status: "completed",
+      detail: language === "ko" ? "한국어로 감지했습니다" : "English detected",
+    },
     {
       id: "emergency_guard",
       label: "응급 표현 확인",
@@ -19,11 +27,17 @@ export async function runHealthcareAgent(input: RunAgentInput): Promise<AgentRes
     },
   ];
 
-  const emergencyResult = checkEmergency(input.message, input.language);
+  const agentInput: RunAgentInput = {
+    ...input,
+    language,
+  };
+
+  const emergencyResult = checkEmergency(input.message, language);
 
   if (emergencyResult) {
     return {
       ...emergencyResult,
+      language,
       trace: [
         ...trace,
         {
@@ -35,7 +49,7 @@ export async function runHealthcareAgent(input: RunAgentInput): Promise<AgentRes
     };
   }
 
-  const intent = await classifyHealthcareIntent(input.message, input.language);
+  const intent = await classifyHealthcareIntent(input.message, language);
   trace.push({
     id: "intent_classifier",
     label: "의료 도메인 의도 분류",
@@ -48,7 +62,7 @@ export async function runHealthcareAgent(input: RunAgentInput): Promise<AgentRes
   });
 
   if (intent && !intent.healthcare_related) {
-    const webResult = await runWebSearch(input.message, input.language);
+    const webResult = await runWebSearch(input.message, language);
     trace.push({
       id: "web_search",
       label: "Tavily 웹 검색",
@@ -61,11 +75,13 @@ export async function runHealthcareAgent(input: RunAgentInput): Promise<AgentRes
     if (webResult) {
       return {
         mode: "web_search",
-        response: writeWebSearchResponse(
-          input.language,
+        response: await writeWebSearchResponse(
+          language,
+          input.message,
           webResult.answer,
           webResult.results,
         ),
+        language,
         usedSearch: true,
         webResults: webResult.results,
         trace: [
@@ -104,7 +120,7 @@ export async function runHealthcareAgent(input: RunAgentInput): Promise<AgentRes
 
     if (localSearch.candidates.length > 0) {
       const response = await writeSymptomSearchResponse(
-        input,
+        agentInput,
         localSearch.symptomIds,
         localSearch.candidates,
       );
@@ -112,6 +128,7 @@ export async function runHealthcareAgent(input: RunAgentInput): Promise<AgentRes
       return {
         mode: "symptom_search",
         response,
+        language,
         usedSearch: true,
         detectedSymptomIds: localSearch.symptomIds,
         candidates: localSearch.candidates,
@@ -127,7 +144,7 @@ export async function runHealthcareAgent(input: RunAgentInput): Promise<AgentRes
     }
   }
 
-  const webResult = await runWebSearch(input.message, input.language);
+  const webResult = await runWebSearch(input.message, language);
   trace.push({
     id: "web_search",
     label: "Tavily 웹 검색",
@@ -140,11 +157,13 @@ export async function runHealthcareAgent(input: RunAgentInput): Promise<AgentRes
   if (webResult) {
     return {
       mode: "web_search",
-      response: writeWebSearchResponse(
-        input.language,
+      response: await writeWebSearchResponse(
+        language,
+        input.message,
         webResult.answer,
         webResult.results,
       ),
+      language,
       usedSearch: true,
       webResults: webResult.results,
       trace: [
@@ -160,7 +179,8 @@ export async function runHealthcareAgent(input: RunAgentInput): Promise<AgentRes
 
   return {
     mode: "safe_mode",
-    response: writeSafeResponse(input.language),
+    response: writeSafeResponse(language),
+    language,
     usedSearch: false,
     trace: [
       ...trace,

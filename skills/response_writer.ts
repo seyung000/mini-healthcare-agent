@@ -56,17 +56,28 @@ function buildSymptomWriterPrompt(
   symptomIds: number[],
   candidates: DiseaseCandidate[],
 ) {
+  const languageInstruction =
+    input.language === "ko"
+      ? "반드시 한국어로 답하라."
+      : "Respond in English only.";
+  const audienceInstruction =
+    input.language === "ko"
+      ? "환자에게 쉬운 한국어로 설명하라."
+      : "Explain in clear, patient-friendly English.";
   const candidateLines = candidates
     .slice(0, 5)
     .map(
       (candidate, index) =>
-        `${index + 1}. 질환명: ${candidate.name_ko}, 분류: ${candidate.category}, 요약: ${candidate.summary}, 매칭 증상 수: ${candidate.matched_symptom_count}, 내부 점수: ${candidate.total_weight}`,
+        input.language === "ko"
+          ? `${index + 1}. 질환명: ${candidate.name_ko}, 분류: ${candidate.category}, 요약: ${candidate.summary}, 매칭 증상 수: ${candidate.matched_symptom_count}, 내부 점수: ${candidate.total_weight}`
+          : `${index + 1}. Disease: ${candidate.name_en}, Category: ${candidate.category}, Summary: ${candidate.summary}, matched symptom count: ${candidate.matched_symptom_count}, internal score: ${candidate.total_weight}`,
     )
     .join("\n");
 
   return [
     "너는 친절한 의사다.",
-    "환자에게 쉬운 한국어로 설명하라.",
+    languageInstruction,
+    audienceInstruction,
     "증상의 가중치나 점수 같은 내부 계산 정보는 절대 말하지 마라.",
     "반드시 검색 결과에 포함된 질환 후보 안에서만 설명하라.",
     "확정 진단처럼 말하지 말고 가능성이 있는 후보로 설명하라.",
@@ -86,7 +97,7 @@ export async function writeSymptomSearchResponse(
 ) {
   const fallback = writeSymptomSearchResponseFallback(input, symptomIds, candidates);
 
-  if (input.language !== "ko" || candidates.length === 0) {
+  if (candidates.length === 0) {
     return fallback;
   }
 
@@ -97,32 +108,82 @@ export async function writeSymptomSearchResponse(
   return llmResponse?.trim() || fallback;
 }
 
-export function writeWebSearchResponse(
+function writeWebSearchResponseFallback(
   language: AgentLanguage,
   answer: string | null,
-  results: WebSearchItem[],
+  _results: WebSearchItem[],
 ) {
   if (language === "ko") {
-    const sourceLines = results
-      .slice(0, 3)
-      .map((result, index) => `${index + 1}. ${result.title} - ${result.url}`);
-
     return [
-      answer ?? "로컬 데이터에서 바로 답을 찾지 못해 웹 검색 결과를 바탕으로 일반 정보를 정리했습니다.",
-      ...(sourceLines.length > 0 ? ["참고 출처:", ...sourceLines] : []),
+      answer ??
+        "로컬 데이터에서 바로 답을 찾지 못해 Tavily 웹검색 결과를 바탕으로 일반 정보를 정리했습니다.",
       "이 내용은 일반 정보이며 진단이 아닙니다.",
       "저는 헬스케어 에이전트이니 가능하면 증상, 질병, 의료 관련 질문을 해주시면 더 정확하게 도와드릴 수 있습니다.",
+      "Gemini가 연결되지 않아 Tavily 결과를 자연스럽게 재작성한 답변은 제공하지 못했습니다.",
     ].join("\n");
   }
 
-  const sourceLines = results
-    .slice(0, 3)
-    .map((result, index) => `${index + 1}. ${result.title} - ${result.url}`);
-
   return [
-    answer ?? "I could not answer from the local dataset, so I used web search for general information.",
-    ...(sourceLines.length > 0 ? ["Sources:", ...sourceLines] : []),
+    answer ??
+      "I could not answer from the local dataset, so I summarized general information from Tavily web search results.",
     "This is general information, not a diagnosis.",
     "I am a healthcare agent, so I can help more accurately if you ask health, symptom, disease, or medical questions.",
+    "Gemini was not available, so I could not provide a natural rewrite based on the Tavily results.",
   ].join("\n");
+}
+
+function buildWebWriterPrompt(
+  language: AgentLanguage,
+  question: string,
+  answer: string | null,
+  results: WebSearchItem[],
+) {
+  const languageInstruction =
+    language === "ko"
+      ? "반드시 한국어로만 답하라."
+      : "Respond in English only.";
+
+  const resultLines = results
+    .slice(0, 5)
+    .map(
+      (result, index) =>
+        `${index + 1}. title: ${result.title}\ncontent: ${result.content}\nurl: ${result.url}`,
+    )
+    .join("\n\n");
+
+  return [
+    "너는 친절한 헬스케어 에이전트다.",
+    languageInstruction,
+    "Tavily 웹검색 결과를 바탕으로 사용자의 질문에 자연스럽고 이해하기 쉽게 답하라.",
+    "본문에는 링크 URL을 직접 나열하지 마라.",
+    "출처 목록, 참고 링크, URL 섹션을 따로 만들지 마라.",
+    "검색 결과 여러 개를 종합해서 하나의 자연스러운 답변처럼 설명하라.",
+    "Tavily answer는 참고용 요약일 뿐이며, 필요하면 개별 검색 결과 내용을 더 우선해서 종합하라.",
+    "검색 결과에 없는 내용을 지어내지 마라.",
+    "의료 관련 질문이 아니더라도 답은 해주되, 마지막에는 헬스/질병/의료 관련 질문을 하면 더 정확히 도와줄 수 있다고 짧게 덧붙여라.",
+    "의료 관련 정보일 때는 확정 진단처럼 말하지 마라.",
+    `사용자 질문: ${question}`,
+    `Tavily answer: ${answer ?? "없음"}`,
+    "웹검색 결과:",
+    resultLines,
+  ].join("\n");
+}
+
+export async function writeWebSearchResponse(
+  language: AgentLanguage,
+  question: string,
+  answer: string | null,
+  results: WebSearchItem[],
+) {
+  const fallback = writeWebSearchResponseFallback(language, answer, results);
+
+  if (results.length === 0) {
+    return fallback;
+  }
+
+  const llmResponse = await generateGeminiText(
+    buildWebWriterPrompt(language, question, answer, results),
+  );
+
+  return llmResponse?.trim() || fallback;
 }

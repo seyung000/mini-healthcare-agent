@@ -32,6 +32,7 @@ export type SkillTraceItem = {
 export type AgentResult = {
   mode: "safe_mode" | "symptom_search" | "emergency_mode" | "web_search";
   response: string;
+  language?: AgentLanguage;
   usedSearch?: boolean;
   detectedSymptomIds?: number[];
   candidates?: DiseaseCandidate[];
