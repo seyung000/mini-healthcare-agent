@@ -36,36 +36,52 @@ async function generateContent(
   const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey) {
+    console.warn("[gemini] GEMINI_API_KEY is missing");
     return null;
   }
 
-  const response = await fetch(
-    `${GEMINI_API_URL}/models/${model}:generateContent?key=${apiKey}`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [{ text: prompt }],
-          },
-        ],
-        generationConfig: {
-          temperature,
-          ...(responseMimeType ? { responseMimeType } : {}),
+  try {
+    const response = await fetch(
+      `${GEMINI_API_URL}/models/${model}:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-      }),
-      cache: "no-store",
-    },
-  );
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [{ text: prompt }],
+            },
+          ],
+          generationConfig: {
+            temperature,
+            ...(responseMimeType ? { responseMimeType } : {}),
+          },
+        }),
+        cache: "no-store",
+      },
+    );
 
-  if (!response.ok) {
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.warn("[gemini] generateContent failed", {
+        model,
+        status: response.status,
+        statusText: response.statusText,
+        response: errorText.slice(0, 1000),
+      });
+      return null;
+    }
+
+    return (await response.json()) as GeminiResponse;
+  } catch (error) {
+    console.error("[gemini] fetch failed", {
+      model,
+      error: error instanceof Error ? error.message : String(error),
+    });
     return null;
   }
-
-  return (await response.json()) as GeminiResponse;
 }
 
 export async function generateGeminiText(prompt: string) {
