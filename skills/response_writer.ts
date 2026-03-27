@@ -15,6 +15,17 @@ export function writeSafeResponse(language: AgentLanguage) {
   return SAFE_RESPONSES[language];
 }
 
+function matchesRequestedLanguage(text: string, language: AgentLanguage) {
+  const hangulMatches = text.match(/[가-힣]/g)?.length ?? 0;
+  const latinMatches = text.match(/[A-Za-z]/g)?.length ?? 0;
+
+  if (language === "ko") {
+    return hangulMatches > 0 && hangulMatches >= latinMatches;
+  }
+
+  return latinMatches > 0 && latinMatches > hangulMatches;
+}
+
 function writeSymptomSearchResponseFallback(
   input: RunAgentInput,
   symptomIds: number[],
@@ -113,22 +124,25 @@ function writeWebSearchResponseFallback(
   answer: string | null,
   _results: WebSearchItem[],
 ) {
+  const safeAnswer =
+    answer && matchesRequestedLanguage(answer, language) ? answer : null;
+
   if (language === "ko") {
     return [
-      answer ??
-        "로컬 데이터에서 바로 답을 찾지 못해 Tavily 웹검색 결과를 바탕으로 일반 정보를 정리했습니다.",
+      safeAnswer ??
+        "Tavily 웹검색 결과는 확인했지만, 현재 한국어로 자연스럽게 다시 풀어 쓸 수 있는 Gemini 응답을 받지 못했습니다.",
       "이 내용은 일반 정보이며 진단이 아닙니다.",
       "저는 헬스케어 에이전트이니 가능하면 증상, 질병, 의료 관련 질문을 해주시면 더 정확하게 도와드릴 수 있습니다.",
-      "Gemini가 연결되지 않아 Tavily 결과를 자연스럽게 재작성한 답변은 제공하지 못했습니다.",
+      "Gemini 호출이 실패해 Tavily 결과를 한국어로 자연스럽게 재작성한 답변은 제공하지 못했습니다.",
     ].join("\n");
   }
 
   return [
-    answer ??
+    safeAnswer ??
       "I could not answer from the local dataset, so I summarized general information from Tavily web search results.",
     "This is general information, not a diagnosis.",
     "I am a healthcare agent, so I can help more accurately if you ask health, symptom, disease, or medical questions.",
-    "Gemini was not available, so I could not provide a natural rewrite based on the Tavily results.",
+    "Gemini failed, so I could not provide a natural rewrite based on the Tavily results.",
   ].join("\n");
 }
 
